@@ -1,0 +1,608 @@
+{
+  "name": "Standup Bot - Worker",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# https://github.com/REDOANUZZAMAN",
+        "height": 80,
+        "width": 688,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1872,
+        -1584
+      ],
+      "typeVersion": 1,
+      "id": "414eaa7c-6930-43f5-85e0-8a5ca623cb9e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "resource": "lead",
+        "campaignId": "Hiring Signal Lonescale",
+        "email": "={{ $json[\"properties\"][\"email\"][\"value\"] }}",
+        "additionalFields": {
+          "companyName": "={{ $json[\"properties\"][\"company\"][\"value\"] }}",
+          "firstName": "={{ $json[\"properties\"][\"firstname\"][\"value\"] }}",
+          "lastName": "={{ $json[\"properties\"][\"lastname\"][\"value\"] }}",
+          "linkedinUrl": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"people_linkedin_url\"] }}"
+        }
+      },
+      "id": "d5546da3-8d6e-422e-bb1c-20aa5bb99efb",
+      "name": "Lemlist - Add lead to campaign",
+      "type": "n8n-nodes-base.lemlist",
+      "position": [
+        2784,
+        -1424
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "engagement",
+        "type": "task",
+        "metadata": {
+          "body": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_name\"] }} is hiring a {{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"job_offers\"][0][\"job_name\"] }}\n\nlink:{{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"job_offers\"][0][\"job_link\"] }}\ncontext: {{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"job_offers\"][0][\"context_keywords\"] }} "
+        },
+        "additionalFields": {
+          "associations": {
+            "companyIds": "={{ $node[\"HubSpot Update Account\"].json[\"companyId\"] || $node[\"HubSpot Create Account\"].json[\"companyId\"] }}",
+            "contactIds": "={{ $json[\"vid\"] }}"
+          }
+        }
+      },
+      "id": "9cc57b82-ba17-4b98-888c-4f8ff28a4cf1",
+      "name": "HubSpot - Follow up task",
+      "type": "n8n-nodes-base.hubspot",
+      "position": [
+        2512,
+        -1136
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"HubSpot - Search company\"].json[\"properties\"][\"hs_lead_status\"][\"value\"] }}",
+              "value2": "ATTEMPTED_TO_CONTACT"
+            }
+          ]
+        }
+      },
+      "id": "bdcd049a-4459-4b4f-a4bc-6f6ec15dd5bb",
+      "name": "Attempted to contact?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2272,
+        -1120
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fe426a62-eee5-4fed-bc74-45d4ac09b338-lonescale",
+        "options": {}
+      },
+      "id": "42d118bb-5936-459c-a8a0-481d7e83319a",
+      "name": "Lonescale - New  Job Intent",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        688,
+        -1296
+      ],
+      "webhookId": "fe426a62-eee5-4fed-bc74-45d4ac09b338",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "additionalFields": {
+          "company": "={{ $json[\"body\"][\"people_company_name\"] }}",
+          "first_name": "={{ $json[\"body\"][\"people_first_name\"] }}",
+          "last_name": "={{ $json[\"body\"][\"people_last_name\"] }}",
+          "website": "={{ $json[\"body\"][\"people_company_domain\"] }}"
+        },
+        "options": {}
+      },
+      "id": "1d79289f-7326-4b23-b875-30e33d44e458",
+      "name": "Dropcontact",
+      "type": "n8n-nodes-base.dropcontact",
+      "position": [
+        912,
+        -1296
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "company",
+        "operation": "searchByDomain",
+        "domain": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"people_company_domain\"] }}",
+        "limit": 1,
+        "options": {
+          "properties": [
+            "hs_lead_status",
+            "numberofemployees",
+            "description",
+            "linkedin_company_page"
+          ]
+        }
+      },
+      "id": "0ba2dc43-7d19-4ac2-8f7f-fb06b74dd82f",
+      "name": "HubSpot - Search company",
+      "type": "n8n-nodes-base.hubspot",
+      "position": [
+        1136,
+        -1296
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"HubSpot - Search company\"].json[\"companyId\"] }}",
+              "operation": "isEmpty"
+            },
+            {
+              "value1": "={{ $node[\"HubSpot - Search company\"].json[\"properties\"][\"hs_lead_status\"][\"value\"] }}",
+              "value2": "NEW"
+            },
+            {
+              "value1": "={{ $node[\"HubSpot - Search company\"].json[\"properties\"][\"hs_lead_status\"][\"value\"] }}",
+              "value2": "OPEN"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "475ba980-cc9f-472e-a93d-3fa7a6b742bb",
+      "name": "New Company?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2272,
+        -1296
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"HubSpot - Search company\"].json[\"properties\"][\"hs_lead_status\"][\"value\"] }}",
+              "value2": "CUSTOMER"
+            }
+          ]
+        }
+      },
+      "id": "5c39e891-0bac-4a3b-bc96-368fa74e4dbe",
+      "name": "Is Customer?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2272,
+        -768
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "channel": "Customer Success - Customer News",
+        "text": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_name\"] }} Sales Team is hiring a {{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"people_buying_signals_title\"] }}\n\nMight be the right team to upsell our product. 🚀",
+        "otherOptions": {},
+        "attachments": []
+      },
+      "id": "0203ed1e-713c-42c9-939e-e007099183d8",
+      "name": "Slack - Notify CS team on Slack1",
+      "type": "n8n-nodes-base.slack",
+      "position": [
+        2512,
+        -784
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "company",
+        "operation": "update",
+        "companyId": "={{ $json[\"companyId\"] }}",
+        "updateFields": {
+          "description": "={{ $json[\"properties\"][\"description\"][\"value\"] || $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_description\"] }}",
+          "linkedInCompanyPage": "={{ $json[\"properties\"][\"linkedin_company_page\"][\"value\"] || $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_linkedin_url\"] }} ",
+          "numberOfEmployees": "={{ $json[\"properties\"][\"numberofemployees\"][\"value\"] || $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_staff_count\"] }}"
+        }
+      },
+      "id": "a2c7ccb3-9ec8-4245-9ae6-181b8e730f31",
+      "name": "HubSpot Update Account",
+      "type": "n8n-nodes-base.hubspot",
+      "position": [
+        1568,
+        -1440
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "contact",
+        "operation": "search",
+        "returnAll": true,
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  {
+                    "propertyName": "email",
+                    "value": "={{ $node[\"Dropcontact\"].json[\"email\"][0][\"email\"] }}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "properties": [
+            "firstname",
+            "lastname",
+            "email",
+            "jobtitle",
+            "lemlistlinkedinurl",
+            "company"
+          ]
+        }
+      },
+      "id": "57c34300-988f-410d-8a87-39102493a88b",
+      "name": "HubSpot",
+      "type": "n8n-nodes-base.hubspot",
+      "position": [
+        1808,
+        -1296
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "company",
+        "name": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_name\"] }}",
+        "additionalFields": {
+          "description": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_description\"] }}",
+          "linkedInCompanyPage": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_linkedin_url\"] }}",
+          "websiteUrl": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_domain\"] }}",
+          "yearFounded": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_founded_year\"] }}"
+        }
+      },
+      "id": "6e9094e0-d9bb-45f2-9074-6674fd980435",
+      "name": "HubSpot Create Account",
+      "type": "n8n-nodes-base.hubspot",
+      "position": [
+        1568,
+        -1168
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json[\"companyId\"] }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "1b4c98f3-880d-42e9-ab17-f044cc994903",
+      "name": "Is Account in Hubspot",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1328,
+        -1296
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "contact",
+        "email": "={{ $node[\"Dropcontact\"].json[\"email\"][0][\"email\"] }}",
+        "additionalFields": {
+          "companyName": "={{ $json[\"properties\"][\"company\"] || $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"people_company_name\"] }} ",
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "linkedin_url",
+                "value": "={{ $json[\"properties\"][\"lemlistlinkedinurl\"] || $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"people_linkedin_url\"] }}"
+              }
+            ]
+          },
+          "firstName": "={{ $json[\"properties\"][\"firstname\"] || $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"people_first_name\"] }}",
+          "jobTitle": "={{ $json[\"properties\"][\"jobtitle\"] || $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"people_current_position\"] }}",
+          "lastName": "={{ $json[\"properties\"][\"lastname\"] || $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"people_last_name\"] }} "
+        }
+      },
+      "id": "788ca745-37b6-4d8f-bebf-77093f124f82",
+      "name": "HubSpot - Create/Update Contact",
+      "type": "n8n-nodes-base.hubspot",
+      "position": [
+        2000,
+        -1296
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "channel": "Customer Success - Customer News",
+        "text": "={{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"company_name\"] }} Sales Team is hiring a {{ $node[\"Lonescale - New  Job Intent\"].json[\"body\"][\"people_buying_signals_title\"] }}\n\nHubspot Record URL:  https://app-eu1.hubspot.com/contacts/{{ $node[\"HubSpot - Search company\"].json[\"portalId\"] }}/company/{{ $node[\"HubSpot - Search company\"].json[\"companyId\"] }} ",
+        "otherOptions": {},
+        "attachments": []
+      },
+      "id": "268ccfbf-32bf-46d2-b754-59e83c754f87",
+      "name": "Slack - Notify sales team on Slack",
+      "type": "n8n-nodes-base.slack",
+      "position": [
+        2512,
+        -960
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"HubSpot - Search company\"].json[\"properties\"][\"hs_lead_status\"][\"value\"] }}",
+              "value2": "OPEN_DEAL"
+            }
+          ]
+        }
+      },
+      "id": "0af212d2-29f0-417e-9e57-e157cf454f1a",
+      "name": "Open Deal?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2272,
+        -944
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "f87e2df2-7ce3-44e2-b9c6-e414ce12750d",
+      "name": "email found",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2512,
+        -1328
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "engagement",
+        "type": "task",
+        "metadata": {
+          "body": "=",
+          "subject": "Hiring Signal - New lead to contact"
+        },
+        "additionalFields": {
+          "associations": {
+            "companyIds": "={{ $node[\"HubSpot Update Account\"].json[\"companyId\"] || $node[\"HubSpot Create Account\"].json[\"companyId\"] }}",
+            "contactIds": "={{ $json[\"vid\"] }}"
+          }
+        }
+      },
+      "id": "29cba976-fad9-4af9-9d5e-03c326b6c4a5",
+      "name": "HubSpot - Linkedin Outreach",
+      "type": "n8n-nodes-base.hubspot",
+      "position": [
+        2784,
+        -1248
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HubSpot": {
+      "main": [
+        [
+          {
+            "node": "HubSpot - Create/Update Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open Deal?": {
+      "main": [
+        [
+          {
+            "node": "Slack - Notify sales team on Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dropcontact": {
+      "main": [
+        [
+          {
+            "node": "HubSpot - Search company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "email found": {
+      "main": [
+        [
+          {
+            "node": "Lemlist - Add lead to campaign",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HubSpot - Linkedin Outreach",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Customer?": {
+      "main": [
+        [
+          {
+            "node": "Slack - Notify CS team on Slack1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Company?": {
+      "main": [
+        [
+          {
+            "node": "email found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attempted to contact?": {
+      "main": [
+        [
+          {
+            "node": "HubSpot - Follow up task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Account in Hubspot": {
+      "main": [
+        [
+          {
+            "node": "HubSpot Update Account",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HubSpot Create Account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot Create Account": {
+      "main": [
+        [
+          {
+            "node": "HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot Update Account": {
+      "main": [
+        [
+          {
+            "node": "HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot - Search company": {
+      "main": [
+        [
+          {
+            "node": "Is Account in Hubspot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lonescale - New  Job Intent": {
+      "main": [
+        [
+          {
+            "node": "Dropcontact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot - Create/Update Contact": {
+      "main": [
+        [
+          {
+            "node": "New Company?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Customer?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Attempted to contact?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Open Deal?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "41a6e785-292f-4d0e-abd0-a33f7ec16984",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3ea5ee65f04b27a744235742229cd33fb9bc1c1a8cd25b6ec8329b2619003115"
+  },
+  "id": "aABkxEso7UJYqtFW",
+  "tags": []
+}
